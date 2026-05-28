@@ -1,0 +1,48 @@
+# GridForge — Example Variables
+# Copy this file to terraform.tfvars and customize for your deployment
+
+# ============================================================
+# General Configuration
+# ============================================================
+aws_region   = "af-south-1"               # Cape Town — lowest latency for African utilities
+environment  = "production"
+utility_name = "volta-river-authority"     # Your utility name (used in resource naming)
+
+# ============================================================
+# Network Configuration
+# ============================================================
+vpc_cidr            = "10.0.0.0/16"       # 65,536 addresses
+availability_zones  = ["af-south-1a", "af-south-1b", "af-south-1c"]
+
+# ============================================================
+# Smart Meter & Sensor Configuration
+# ============================================================
+meter_count  = 8000                        # Number of smart meters to connect
+sensor_count = 400                         # Number of substation grid sensors
+
+# ============================================================
+# Data Pipeline Configuration
+# ============================================================
+retention_days              = 365          # 1 year telemetry retention
+memory_store_retention_hours = 24          # 24h in memory for fast queries
+kinesis_mode                = "ON_DEMAND"  # Auto-scales with data volume
+
+# ============================================================
+# Analytics & ML Configuration
+# ============================================================
+sagemaker_serverless = true                # Cost-optimized for <1000 invocations/day
+bedrock_model_id     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+# ============================================================
+# Security Configuration
+# ============================================================
+kms_key_rotation_days = 90                 # NERC CIP compliance
+enable_guardduty      = true
+enable_security_hub   = true
+
+# ============================================================
+# Cost Optimization
+# ============================================================
+monthly_budget     = 500                   # USD per month budget limit
+use_spot_instances = true                  # 70% savings on batch processing
+lambda_architecture = "arm64"              # 20% better price-performance (Graviton)

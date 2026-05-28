@@ -1,0 +1,116 @@
+{
+  "Comment": "GridForge Grid Response Orchestrator — Automated response to grid anomalies",
+  "StartAt": "ClassifySeverity",
+  "States": {
+    "ClassifySeverity": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "classify",
+        "anomaly_data.$": "$.detail"
+      },
+      "ResultPath": "$.classification",
+      "Next": "SeverityChoice"
+    },
+    "SeverityChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.classification.severity",
+          "StringEquals": "CRITICAL",
+          "Next": "IsolateGridSegment"
+        },
+        {
+          "Variable": "$.classification.severity",
+          "StringEquals": "HIGH",
+          "Next": "NotifyOperators"
+        },
+        {
+          "Variable": "$.classification.severity",
+          "StringEquals": "MEDIUM",
+          "Next": "LogAndNotifyOps"
+        }
+      ],
+      "Default": "LogOnly"
+    },
+    "IsolateGridSegment": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "isolate_segment",
+        "anomaly_data.$": "$.classification"
+      },
+      "ResultPath": "$.isolation_result",
+      "Next": "NotifyOperators",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "Next": "NotifyOperators",
+          "ResultPath": "$.isolation_error"
+        }
+      ]
+    },
+    "NotifyOperators": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "notify",
+        "severity.$": "$.classification.severity",
+        "anomaly_data.$": "$.detail",
+        "isolation_result.$": "$.isolation_result"
+      },
+      "ResultPath": "$.notification_result",
+      "Next": "LogIncident"
+    },
+    "LogAndNotifyOps": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "notify_ops",
+        "severity.$": "$.classification.severity",
+        "anomaly_data.$": "$.detail"
+      },
+      "ResultPath": "$.notification_result",
+      "Next": "LogIncident"
+    },
+    "LogOnly": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "log",
+        "severity.$": "$.classification.severity",
+        "anomaly_data.$": "$.detail"
+      },
+      "ResultPath": "$.log_result",
+      "Next": "Success"
+    },
+    "LogIncident": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "log_incident",
+        "severity.$": "$.classification.severity",
+        "anomaly_data.$": "$.detail",
+        "isolation_result.$": "$.isolation_result",
+        "notification_result.$": "$.notification_result"
+      },
+      "ResultPath": "$.incident_log_result",
+      "Next": "GenerateReport"
+    },
+    "GenerateReport": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:${region}:${account_id}:function:${utility_name}-grid-event-processor",
+      "Parameters": {
+        "event_type": "generate_report",
+        "severity.$": "$.classification.severity",
+        "anomaly_data.$": "$.detail",
+        "classification.$": "$.classification"
+      },
+      "ResultPath": "$.report",
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
+    }
+  }
+}

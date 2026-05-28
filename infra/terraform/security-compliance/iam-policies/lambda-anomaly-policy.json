@@ -1,0 +1,44 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "KinesisReadPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "kinesis:GetRecords",
+        "kinesis:GetShardIterator",
+        "kinesis:DescribeStream",
+        "kinesis:ListShards"
+      ],
+      "Resource": ["${kinesis_stream_arn}"]
+    },
+    {
+      "Sid": "SNSPublishPermissions",
+      "Effect": "Allow",
+      "Action": ["sns:Publish"],
+      "Resource": ["${sns_critical_arn}"]
+    },
+    {
+      "Sid": "EventBridgePermissions",
+      "Effect": "Allow",
+      "Action": ["events:PutEvents"],
+      "Resource": ["${eventbridge_bus_arn}"]
+    },
+    {
+      "Sid": "SageMakerInvokePermissions",
+      "Effect": "Allow",
+      "Action": ["sagemaker:InvokeEndpoint"],
+      "Resource": ["arn:aws:sagemaker:${region}:*:endpoint/${utility_name}-*"]
+    },
+    {
+      "Sid": "CloudWatchLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": ["arn:aws:logs:${region}:*:*"]
+    }
+  ]
+}
