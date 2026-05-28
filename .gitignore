@@ -1,34 +1,58 @@
-# Dependencies
-node_modules/
-.venv/
+# ── Terraform ──────────────────────────────────────────
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfplan
+*.tfplan.bin
+
+# ── Python ─────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Terraform
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.backup
-infra/terraform/.terraform.lock.hcl
-infra/terraform/**/*.tfstate
-infra/terraform/**/*.tfstate.backup
-
-# Environment
+# ── Virtual Environments ───────────────────────────────
+venv/
+env/
 .env
-.env.local
-*.pem
-*.key
+.venv/
 
-# IDE
+# ── IDE ────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS
+*~
 .DS_Store
-Thumbs.db
 
-# Build
-dist/
-build/
+# ── Lambda packaging ──────────────────────────────────
 *.zip
+infra/lambda/*/package/
+
+# ── AWS ────────────────────────────────────────────────
+.aws/
+credentials
+
+# ── Generated / test output ────────────────────────────
+test-data.json
+test-output/
+*.log

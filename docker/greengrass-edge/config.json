@@ -1,0 +1,20 @@
+{
+  "device_id": "edge-gateway-accra-01",
+  "substation_id": "substation-accra-01",
+  "utility_name": "VRA-Ghana",
+  "region": "af-south-1",
+  "mqtt_broker": "a1b2c3d4e5f6-ats.iot.af-south-1.amazonaws.com",
+  "mqtt_port": 8883,
+  "cert_path": "certs/",
+  "model_path": "voltage_sag_model.tflite",
+  "voltage_nominal": 230.0,
+  "frequency_nominal": 50.0,
+  "voltage_low_critical": 180.0,
+  "voltage_high_critical": 260.0,
+  "frequency_dev_threshold": 0.5,
+  "power_factor_threshold": 0.85,
+  "buffer_max_size": 1000,
+  "publish_interval_sec": 5,
+  "log_level": "INFO",
+  "metrics_port": 8080
+}

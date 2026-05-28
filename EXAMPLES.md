@@ -117,13 +117,13 @@ This deployment focuses on transformer health monitoring at 12 Eko Electric subs
 
 - **Greengrass**: 12 edge gateways (1 per substation)
 - **Timestream**: Dedicated table `transformer-health` with schema:
-  - `oil_temperature` (°C): Continuous monitoring
+  - `oil_temperature` (C): Continuous monitoring
   - `dissolved_gas_h2` (ppm): Hydrogen dissolved gas analysis
   - `dissolved_gas_ch4` (ppm): Methane dissolved gas analysis
   - `dissolved_gas_c2h2` (ppm): Acetylene (key indicator of arcing)
   - `load_tap_changer_position`: Current tap position
   - `bushing_current` (mA): Bushing insulation health
-  - `winding_temperature` (°C): Hot spot temperature
+  - `winding_temperature` (C): Hot spot temperature
 
 - **SageMaker**: XGBoost model trained on IEEE C57.104 transformer failure data
 - **Bedrock Agent**: "Transformer Analyst" with knowledge base of IEC 60076 standards
@@ -156,8 +156,8 @@ module "analytics_ml" {
 
 The transformer response orchestrator follows this flow:
 
-1. **Receive**: Anomaly event from EventBridge (e.g., oil temperature > 85°C)
-2. **Classify**: Severity assessment (LOW: 75-85°C, MEDIUM: 85-95°C, HIGH: 95-110°C, CRITICAL: > 110°C)
+1. **Receive**: Anomaly event from EventBridge (e.g., oil temperature > 85C)
+2. **Classify**: Severity assessment (LOW: 75-85C, MEDIUM: 85-95C, HIGH: 95-110C, CRITICAL: > 110C)
 3. **If CRITICAL**: Send IoT command to reduce transformer load via load tap changer
 4. **Notify**: SNS to maintenance dispatch team + SES email to utility management
 5. **Log**: DynamoDB incident record with full telemetry snapshot
@@ -187,7 +187,7 @@ For budget-constrained deployments, we eliminate non-essential services:
 - QuickSight: 1 reader dashboard
 
 **Excluded (to save costs):**
-- ~~Kinesis~~ — Direct IoT Rule → Timestream (no intermediate stream)
+- ~~Kinesis~~ — Direct IoT Rule to Timestream (no intermediate stream)
 - ~~Firehose~~ — Not needed without Kinesis
 - ~~SageMaker~~ — Rule-based anomaly detection instead of ML
 - ~~Bedrock~~ — Removed for cost savings
@@ -264,9 +264,9 @@ THRESHOLDS = {
 ### Growth Path
 
 As the cooperative scales, modules can be added incrementally:
-1. **500 → 1,000 meters**: Add Kinesis for stream processing (+$50/month)
-2. **1,000 → 5,000 meters**: Add SageMaker for ML anomaly detection (+$100/month)
-3. **5,000 → 10,000 meters**: Add Greengrass for edge processing (+$50/month)
+1. **500 to 1,000 meters**: Add Kinesis for stream processing (+$50/month)
+2. **1,000 to 5,000 meters**: Add SageMaker for ML anomaly detection (+$100/month)
+3. **5,000 to 10,000 meters**: Add Greengrass for edge processing (+$50/month)
 4. **10,000+ meters**: Add Bedrock for AI analysis (+$80/month)
 
 ---
@@ -328,7 +328,7 @@ Add disaster recovery for our GridForge deployment with RPO of 1 hour and RTO of
 | Lambda (standby, inactive) | $5 |
 | Route 53 health checks | $15 |
 | CloudWatch (cross-region) | $30 |
-| VPN peering (af-south-1 ↔ eu-west-1) | $50 |
+| VPN peering (af-south-1 to eu-west-1) | $50 |
 | Additional KMS keys (eu-west-1) | $4 |
 | Data transfer (inter-region) | $46 |
 | **Total** | **~$220/month** |
@@ -367,4 +367,206 @@ Generate a complete NERC CIP compliance audit package for our smart grid deploym
 
 ---
 
-*Examples Document v1.0 — GridForge by HarchCorp S.A. — AWS Prompt the Planet Challenge 2026*
+## Example 7: Demand Response Integration
+
+**User Input:**
+```
+Add demand response capability to automatically shed non-critical loads during peak demand events for our 15,000-meter deployment in Abidjan, Cote d'Ivoire
+```
+
+**Expected LLM Output:**
+
+### Demand Response Architecture
+
+This extends the base GridForge deployment with automated demand response:
+
+- **EventBridge Rule**: Trigger on `peak-demand-detected` events from Lambda anomaly detector
+- **Step Functions Extension**: Add 3 new states after LogIncident:
+  - `EvaluateDemandResponse`: Calculate load reduction needed (kW)
+  - `IdentifySheddableLoads`: Query DynamoDB for non-critical meters (street lighting, EV chargers, water heaters)
+  - `ExecuteLoadShed`: Send IoT Core commands to smart meters to reduce load
+- **IoT Core Commands**: `gridforge/command/{meter_id}` with payload `{"action": "reduce_load", "target_kw": 2.5, "duration_min": 30}`
+- **Recovery Workflow**: After duration expires, send `{"action": "restore_load"}` command
+- **Bedrock Analysis**: Generate demand response effectiveness report comparing predicted vs. actual load reduction
+
+### Terraform Configuration
+
+```hcl
+module "analytics_ml" {
+  source                = "./modules/analytics-ml"
+  utility_name          = "CIE-CoteDivoire"
+  meter_count           = 15000
+  enable_demand_response = true
+  dr_threshold_kw       = 50000  # Trigger DR when demand exceeds 50MW
+  dr_sheddable_pct      = 0.15   # 15% of load is non-critical
+  dr_max_duration_min   = 60     # Maximum 1-hour load shed per event
+}
+```
+
+### Demand Response Categories
+
+| Category | Examples | Shed Priority | Typical Reduction |
+|----------|---------|---------------|------------------|
+| Priority 1 (Critical) | Hospitals, Traffic lights, Water pumps | Never shed | 0% |
+| Priority 2 (Important) | Commercial offices, Schools | Last resort | 20% |
+| Priority 3 (Deferrable) | EV chargers, Water heaters | First to shed | 100% |
+| Priority 4 (Non-critical) | Street lighting (partial), Advertising | Auto-shed | 50% |
+
+### Cost Impact: +$45/month (Step Functions execution + IoT commands)
+
+---
+
+## Example 8: Renewable Energy Integration (Solar)
+
+**User Input:**
+```
+Integrate solar PV monitoring for 200 rooftop installations feeding into our grid in Nairobi, Kenya
+```
+
+**Expected LLM Output:**
+
+### Solar Integration Architecture
+
+- **IoT Core Thing Group**: `nairobi-solar-pv` (200 solar inverters, separate from meters)
+- **Timestream Table**: `solar-generation` with schema:
+  - Measures: `power_output` (kW), `voltage_output` (V), `irradiance` (W/m2), `panel_temperature` (C), `efficiency` (%)
+  - Dimensions: `inverter_id`, `installation_id`, `installer`, `capacity_kw`
+- **New Lambda Function**: `solar-output-monitor`
+  - Detect: Output < 10% of rated capacity during peak irradiance hours (9am-3pm)
+  - Detect: Voltage rise > 253V at solar connection point (reverse power flow)
+  - Detect: Efficiency drop > 20% from baseline (soiling/degradation alert)
+- **SageMaker**: Solar forecasting model using weather data (irradiance, temperature, cloud cover)
+- **QuickSight**: Add "Solar Generation" panel to Grid Operations Center dashboard
+  - Real-time generation vs. consumption overlay
+  - Forecasted solar output (next 24 hours)
+  - Revenue from feed-in tariff calculations
+
+### Net Metering Calculation
+
+```python
+# Kenya feed-in tariff: $0.08/kWh for solar
+# Average 5kW rooftop system generates ~20 kWh/day
+# 200 installations = 4,000 kWh/day = $320/day revenue
+# Monthly revenue: ~$9,600 from feed-in tariffs
+```
+
+### Cost Impact: +$60/month (additional IoT devices + Timestream + Lambda)
+
+---
+
+## Example 9: Meter Tampering Detection (Revenue Protection)
+
+**User Input:**
+```
+Add revenue protection features to detect meter tampering and electricity theft for our 25,000-meter deployment in Kinshasa, DRC
+```
+
+**Expected LLM Output:**
+
+### Revenue Protection Architecture
+
+DRC loses an estimated 35%+ of generated electricity to theft and non-technical losses. This deployment adds:
+
+- **Device Defender Enhanced Profile**: Detect anomalous meter behavior:
+  - Sudden drop in reported consumption (meter bypass)
+  - Communication gaps (meter disconnected/relocated)
+  - Unusual voltage/current ratio (current transformer tampering)
+  - Meter reporting from unexpected location (GPS-enabled meters)
+- **New Lambda Function**: `revenue-protection-analyzer`
+  - Compare substation input energy vs. sum of meter readings (energy balance)
+  - Flag zones where T&D losses exceed 15% (likely theft areas)
+  - Cross-reference meter readings with neighbor meters (cluster analysis)
+  - Generate investigation tickets for field teams via SNS
+- **Timestream Query**: Energy balance per feeder
+  ```sql
+  SELECT
+    substation_id,
+    SUM(CASE WHEN measure_name = 'substation_input_kwh' THEN measure_value::double ELSE 0 END) as input_kwh,
+    SUM(CASE WHEN measure_name = 'meter_consumption_kwh' THEN measure_value::double ELSE 0 END) as metered_kwh,
+    (input_kwh - metered_kwh) / input_kwh * 100 as loss_pct
+  FROM "grid-telemetry"."meter-readings"
+  WHERE time > ago(24h)
+  GROUP BY substation_id
+  HAVING loss_pct > 15
+  ORDER BY loss_pct DESC
+  ```
+- **Bedrock Agent Extension**: "Revenue Protection Analyst" that:
+  - Generates investigation priority lists by zone
+  - Estimates revenue recovery potential per investigation
+  - Provides tampering pattern analysis based on historical data
+  - Suggests field inspection routes for maintenance teams
+
+### Estimated Revenue Recovery
+
+| Metric | Value |
+|--------|-------|
+| Current T&D losses | 35% |
+| Technical losses (expected) | 12% |
+| Non-technical losses (theft/tampering) | 23% |
+| Detectable with Device Defender | ~15% |
+| Monthly revenue at 25K meters | $750,000 |
+| Potential recovery (15% of revenue) | $112,500/month |
+| ROI on GridForge deployment | 14,000x |
+
+### Cost Impact: +$30/month (Device Defender + additional Lambda + DynamoDB)
+
+---
+
+## Example 10: Cross-Border Utility Coordination (West African Power Pool)
+
+**User Input:**
+```
+Set up cross-border grid monitoring between Cote d'Ivoire (CIE, 30K meters), Ghana (VRA, 25K meters), and Togo (CEET, 8K meters) for the West African Power Pool
+```
+
+**Expected LLM Output:**
+
+### Multi-Country Architecture
+
+- **AWS Organizations**: 3 OUs (CIE-CoteDivoire, VRA-Ghana, CEET-Togo)
+- **Centralized Management Account**: Security Hub, GuardDuty, Config aggregators
+- **Transit Gateway Peering**: Inter-VPC connectivity between 3 utility VPCs
+- **Shared Timestream**: Regional `wapp-grid-telemetry` database with per-utility tables
+- **Cross-Border Dashboard**: QuickSight dashboard showing:
+  - Power flow between countries (import/export MW)
+  - Frequency synchronization across the interconnected grid
+  - Cross-border voltage profile (must stay within 207V-253V per ECOWAS standards)
+  - Aggregate renewable generation across the pool
+  - Emergency load sharing status
+- **ECOWAS Compliance**: Regional energy regulatory framework (WAPP/ECOWAS/EWG)
+- **EventBridge Cross-Account Events**: Share critical anomaly events across utilities
+- **Shared Bedrock Agent**: "WAPP Grid Coordinator" with knowledge base of:
+  - West African Power Pool interconnection agreements
+  - ECOWAS energy protocols
+  - Cross-border power purchase agreements
+  - Emergency load sharing procedures
+
+### Cross-Border Step Functions
+
+When one country experiences a critical grid event:
+1. Detect: Anomaly in Country A (e.g., frequency drop < 49.5Hz)
+2. Notify: Cross-border EventBridge event to Country B and C
+3. Evaluate: Can neighboring countries provide emergency support?
+4. Coordinate: If yes, Step Functions triggers load sharing workflow
+5. Monitor: Real-time frequency and voltage tracking across all 3 countries
+6. Report: Bedrock generates cross-border incident report
+
+### Cost Estimate: ~$4,200/month total
+
+| Utility | Country | Meters | Monthly Cost |
+|---------|---------|--------|-------------|
+| CIE | Cote d'Ivoire | 30,000 | $1,800 |
+| VRA | Ghana | 25,000 | $1,200 |
+| CEET | Togo | 8,000 | $500 |
+| Shared Infrastructure | WAPP | — | $700 |
+| **Total** | **3 countries** | **63,000** | **~$4,200** |
+
+### Regulatory Considerations
+
+- **Data sovereignty**: Each country's meter data stays in their own Timestream database; only aggregated cross-border data is shared
+- **ECOWAS protocols**: All cross-border power exchanges logged for ECOWAS regulatory compliance
+- **Currency**: Each utility billed in their own AWS account (local currency if available)
+
+---
+
+*Examples Document v2.0 — GridForge by HarchCorp S.A. — AWS Prompt the Planet Challenge 2026*
